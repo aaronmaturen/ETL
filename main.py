@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #rm -rf /tmp/cis486logs && mkdir /tmp/cis486logs && python main.py && echo ">>> Log Files <<<" && cat /tmp/cis486logs/*.txt
-#version two
+#version tweet
 #aaron maturen
 #empty fields are "" not None
 #didn't indent part of the for loop
@@ -26,8 +26,13 @@ class clsTable():
 		fields = {}
 		tableName = ""
 		Keys = ""
-		IsShadowed = False
+		isShadowed = False
 		loadOrder = 0
+
+class clsBusinessRule():
+	def __init__(self):
+		self.legacyValue = ''
+		self.DWValue = ''
 
 gStrDirPath = '/tmp/cis486'
 gStrLogPath = '/tmp/cis486logs'
@@ -37,7 +42,7 @@ gDictTables = {}
 gDictFields = {}
 
 #database stuffs
-ip = '172.16.218.135'
+ip = '172.16.218.142'
 port = '1433'
 username = 'thedw'
 password = 'thedw'
@@ -170,7 +175,7 @@ def translateHeader(strFilename):
 		for result in aDataReader:
 			if aNewField.DWName is None:
 				aNewField.DWName = result[2]
-			aNewField.businessRules = {}
+			aNewField.businessRules = []
 			gDictFields[result[2]] = aNewField
 			updateTablesAndFieldsArrays(result[3],result[2])
 		lngPosition += 1
@@ -189,7 +194,7 @@ def printOutInsertNames():
 	
 	logWrite(vbCrLf + vbCrLf)
 	logWrite("-------------------------------------------------------------------------------")
-	logWrite(vbCrLf + "...Successfully completed header translation" + vbCrLf)
+	logWrite(vbCrLf + "...Successfully completed processing files..." + vbCrLf)
 	logWrite("-------------------------------------------------------------------------------")
 	logWrite(vbCrLf + vbCrLf)
 	logWrite("the following table entities were generated:" + vbCrLf)
@@ -281,10 +286,10 @@ def processData(varDataFields, strImportTUID):
 		try:
 			aDataReader = aConn.execute(strSQLCmd)
 			if aDataReader.fetchone()[0]	> 0:
-				logWrite(vbCrLf + "Update" + vbCrLf)
-				#performUpdate(aTable,varDataFields,strWhereClause,strImportTUID)
+				#logWrite(vbCrLf + "Update" + vbCrLf)
+				performUpdate(aTable,varDataFields,strWhereClause,strImportTUID)
 			else:
-				logWrite(vbCrLf + "Insert" + vbCrLf)
+				#logWrite(vbCrLf + "Insert" + vbCrLf)
 				performInsert(aTable,varDataFields,strWhereClause,strImportTUID)
 	
 		except Exception, e:
@@ -301,7 +306,7 @@ def processData(varDataFields, strImportTUID):
 
 
 def performInsert(aTable, varDataFields, strWhereClause, strImportTUID):
-	logWrite("performInsert")
+	#logWrite("performInsert")
 	try:
 		aConn = sqlalchemy.create_engine(gStrConnection)
 		aConn.connect().execution_options(enable_rowcount=True)
@@ -318,7 +323,7 @@ def performInsert(aTable, varDataFields, strWhereClause, strImportTUID):
 		if varDataFields[aTable.fields[aFieldName].ordinalPositionInExtractFile] is "":
 			strDataList = strDataList[0:-1] + "NULL, '"
 		else:
-			strDataList += varDataFields[aTable.fields[aFieldName].ordinalPositionInExtractFile].rstrip('\n').rstrip('\r') + "', '"
+			strDataList += varDataFields[aTable.fields[aFieldName].ordinalPositionInExtractFile].rstrip('\n').rstrip('\r').replace("'", "''") + "', '"
 	
 	strFieldList += "Import_TUID"
 	
@@ -332,9 +337,8 @@ def performInsert(aTable, varDataFields, strWhereClause, strImportTUID):
 		aConn.close()
 	
 	try:
-	#	pass
-		logWrite(strSQLCmd)
 		aConn.execute(strSQLCmd)
+		logWrite("Generated Update Command: " + strSQLCmd + vbCrLf + vbCrLf)
 	except Exception, e:
 		logWrite(vbCrLf + vbCrLf + vbCrLf)
 		logWrite("oops... could not execute insert query in performInsert" + vbCrLf)
@@ -348,8 +352,277 @@ def performInsert(aTable, varDataFields, strWhereClause, strImportTUID):
 		logWrite("ETL ERRORS... COULD NOT CLOSE DB CONNECTIONS")
 		logWrite(str(e))
 
+def performUpdate(aTable, varDataFields,strWhereClause,strImportTUID):
+	#logWrite("performUpdate")
+	try:
+		aConn = sqlalchemy.create_engine(gStrConnection)
+		aConn.connect().execution_options(enable_rowcount=True)
+	except Exception, e:
+		logWrite("***ERROR on aConn.open()***"+vbCrLf+"in performInsert" + vbCrLf)
+		logWrite(str(e) + vbCrLf)
+	
+	strDataList = ""
+	if aTable.isShadowed:
+		shadowRecord(aTable.TableName, strWhereClause)
+	
+	strSQLCmd = "UPDATE [" + aTable.TableName + "] SET "
+	for aFieldName in aTable.fields.keys():
+		strDataList += aFieldName
+		if varDataFields[aTable.fields[aFieldName].ordinalPositionInExtractFile] is "":
+			strDataList += " = NULL,"
+		else:
+			strDataList += " = '" + varDataFields[aTable.fields[aFieldName].ordinalPositionInExtractFile].rstrip('\n').rstrip('\r').replace("'", "''") + "',"	
+	
+	strDataList += "Import_TUID = '" + strImportTUID + "' "
+	
+	#mash it all together
+	strSQLCmd += strDataList + strWhereClause
+	
+	try:
+		aConn.execute(strSQLCmd)
+		logWrite("Generated Update Command: " + strSQLCmd + vbCrLf + vbCrLf)
+	except Exception, e:
+		logWrite(vbCrLf + vbCrLf + vbCrLf)
+		logWrite("oops... could not execute query in " + sys._getframe().f_code.co_name + vbCrLf)
+		logWrite("statement: " + strSQLCmd + vbCrLf)
+		logWrite("error: " + str(e) + vbCrLf)
+	
+def shadowRecord(strTableName,strWhereClause):
+	strShadowsTableName = strTableName[:strTableName.index("_Table")]+"_Shadows_Table"
+	try:
+		aConn = sqlalchemy.create_engine(gStrConnection)
+		aConn.connect().execution_options(enable_rowcount=True)
+	except Exception, e:
+		logWrite("***ERROR on aConn.open()***"+vbCrLf+"in performInsert" + vbCrLf)
+		logWrite(str(e) + vbCrLf)
+		
+	strSQLCmd = "INSERT INTO [" + strShadowsTableName + "] SELECT * FROM [" + strTableName + "] " + strWhereClause
+	
+	try:
+		aConn.execute(strSQLCmd)
+		#logWrite("Generated shadow Command: " + strSQLCmd + vbCrLf + vbCrLf)
+	except Exception, e:
+		logWrite(vbCrLf + vbCrLf + vbCrLf)
+		logWrite("oops... could not execute query in " + sys._getframe().f_code.co_name + vbCrLf)
+		logWrite("statement: " + strSQLCmd + vbCrLf)
+		logWrite("error: " + str(e) + vbCrLf)
+	
+def loadBusinessRules():
+	aConn = sqlalchemy.create_engine(gStrConnection)
+	aBusinessRule = clsBusinessRule()
+	Subsidiary_Number = 0
+	DW_Fieldname = 1
+	Legacy_Value = 2
+	DW_Value = 3
+	
+	try:
+		aConn.connect()
+	except Exception, e:
+		logWrite("Could not connect to aConn in loadBusinessRules" + vbCrLf)
+		logWrite(str(e) + vbCrLf)
+		aConn.close()
+	
+	logWrite("Beginning Business Rule Load for subsidiary " + gStrCompanyCode + "..." + vbCrLf)
+	for aField in gDictFields:
+		strSQLCmd = "SELECT * FROM [BUSINESS_RULES_TABLE] WHERE [SUBSIDIARY_NUMBER] = '" + gStrCompanyCode + "' AND [DW_FIELDNAME] = '" + gDictFields[aField].DWName + "'"
+		
+		try:
+			#logWrite(strSQLCmd + vbCrLf)
+			rows = aConn.execute(strSQLCmd)
+			for row in rows:
+				logWrite(str(row) + vbCrLf)
+				aBusinessRule = clsBusinessRule()
+				if (row[Legacy_Value] is 'Null'):
+					aBusinessRule.legacyValue = ""
+				else:
+					aBusinessRule.legacyValue = row[Legacy_Value]
+				
+				aBusinessRule.DWValue = row[DW_Value]
+				gDictFields[aField].businessRules.append(aBusinessRule)
+		except Exception, e:
+			logWrite(vbCrLf + vbCrLf + vbCrLf)
+			logWrite("oops... could not select business rules in loadBusinessRules()" + vbCrLf)
+			logWrite("statement: " + strSQLCmd + vbCrLf)
+			logWrite("error: " + "".join(re.findall("\[FreeTDS\]\[SQL Server\][^0-9]+\([0-9]+\)",str(e))) + vbCrLf)
+
+		#try:
+		#	#aConn.close()
+		#	del aConn
+		#except Exception, e:
+		#	logWrite("ETL ERRORS... COULD NOT CLOSE DB CONNECTIONS" + vbCrLf)
+		#	logWrite(str(e) + vbCrLf + vbCrLf)
+			
+	logWrite("Business Rules Loading Complete" + vbCrLf)
+
+def dispatchVerify(strTableAndField, strValueToVerify):
+	TABLE_FIELD_SEPERATOR = "."
+	blnResult = False
+	strSQLCmd = ''
+	strTableName = ''
+	strFieldName = ''
+	lngPos = strTableAndField.index(TABLE_FIELD_SEPERATOR)
+	aConn = sqlalchemy.create_engine(gStrConnection)
+		
+	if lngPos < 0:
+		#couldn't find TABLE_FIELD_SEPERATOR
+		logWrite("Couldn't Parse VRFY Business Rule " + strTableAndField + vbCrLf)
+	else:
+		#logWrite("Attempting to apply VRFY Business Rule '" + strTableAndField + "'" + vbCrLf)
+		strTableName = strTableAndField[:lngPos]
+		strFieldName = strTableAndField[lngPos+1:]
+		
+		try:
+			aConn.connect()
+		except Exception, e:
+			logWrite("Could not connect to aConn in dispatchVerify" + vbCrLf)
+			logWrite(str(e) + vbCrLf)
+			aConn.close()
+			
+		strSQLCmd = "SELECT * FROM [" + strTableName + "] WHERE [" + strFieldName + "] = '" + strValueToVerify.rstrip() + "'"
+		try:
+			aDataReader = aConn.execute(strSQLCmd)
+		except Exception, e:
+				logWrite(vbCrLf + vbCrLf + vbCrLf)
+				logWrite("oops... could not execute query in " + sys._getframe().f_code.co_name + vbCrLf)
+				logWrite("statement: " + strSQLCmd + vbCrLf)
+				logWrite("error: " + str(e) + vbCrLf)
+		
+		try:
+			for row in aDataReader:
+				return True
+				aDataReader.close()
+		except Exception, e:
+			pass
+			
+		logWrite(strSQLCmd + vbCrLf)
+			
+		try:
+			#aConn.close()
+			del aConn
+		except Exception, e:
+			logWrite("ETL ERRORS... COULD NOT CLOSE DB CONNECTIONS" + vbCrLf)
+			logWrite(str(e) + vbCrLf + vbCrLf)
+
+	return blnResult
+
+def dispatchMap(strLegacyValue,strDWValue,strValue):
+	if strValue == strLegacyValue:
+		#logWrite("Attempting to map " + strLegacyValue + " to " + strDWValue + vbCrLf)
+		return strDWValue
+	return strValue
+
+def dispatchTruncateLeft(size,strValueToTruncate):
+	size = int(size)
+	try:
+		#logWrite("Attempting to truncate " + strValueToTruncate + " to " + strValueToTruncate[:size] + vbCrLf)
+		return strValueToTruncate[:size]
+	except Exception, e:
+		logWrite("Unable to truncate " + strValueToTruncate + vbCrLf)
+		return strValueToTruncate
+
+def dispatchMask(strMask,strValueToShape):
+	blnResult = False
+	#logWrite("Attempting to Mask " + strValueToShape + " with the mask " + strMask)
+	
+	if(strValueToShape == ""):
+		return True
+	
+	strPreFixed = ""
+	strMask = strMask.lower()
+	if(strMask == "mm/dd/yyyy"):
+		#mask is a date
+		try:
+			if(strValueToShape == re.split('[0123]?/d[/\-.][0123]?/d[/\-.](/d{4}|/d{2})',strValueToShape)[0]):
+				tempDate = re.split('[/\-.]',strValueToShape)
+				if(len(tempDate[0]) == 1):
+					tempDate[0] = '0' + tempDate[0]
+				if(int(tempDate[0]) < 1):
+					tempDate[0] = '01'
+				if(len(tempDate[1]) == 1):
+						tempDate[1] = '0' + tempDate[1]
+				if(int(tempDate[1]) < 1):
+					tempDate[1] = '01'
+				if(len(tempDate[2]) == 2):
+					#if the year would be in the future... assume its supposed to be in the 1900s
+					if int(tempDate[2]) <= int(strftime("%y", localtime())):
+						tempDate[2] = '20' + tempDate[2]
+					else:
+						tempDate[2] = '19' + tempDate[2]
+				if(int(tempDate[2]) <= 1900):
+					tempDate[2] = '1901'
+				#logWrite(" results in: " + '/'.join(tempDate) + vbCrLf)
+				return '/'.join(tempDate)
+			
+			else:
+				logWrite("Attempting to Mask " + strValueToShape + " with the mask " + strMask)
+				logWrite(" failed." + vbCrLf)
+				return False
+		except Exception, e:
+			logWrite("The Attempt to Mask " + strValueToShape + " with the mask " + strMask)
+			logWrite(" failed for subsidiary " + gStrCompanyCode + vbCrLf)
+			logWrite(str(e) + vbCrLf + vbCrLf)
+	else:
+		#it's some other mask
+		try:
+			safeValue = strValueToShape
+			onlyNumbers = ''.join(re.split('\D+',strValueToShape))
+			numberMask = re.findall('.',strMask)
+			strValueToShape = ""
+			i = 0
+			if(len(onlyNumbers) == len(''.join(re.split('\D+',strMask)))):
+				for char in numberMask:
+					if(not char.isdigit()):
+						strValueToShape += char
+					else:
+						strValueToShape += onlyNumbers[i:i+1]
+						i+=1
+				#logWrite(" results in: " + strValueToShape + vbCrLf)
+				return strValueToShape
+		except Exception, e:
+			logWrite("The Attempt to Mask " + strValueToShape + " with the mask " + strMask)
+			logWrite(" failed for subsidiary " + gStrCompanyCode + vbCrLf)
+			logWrite(str(e) + vbCrLf + vbCrLf)
+	logWrite("Attempting to Mask " + strValueToShape + " with the mask " + strMask)
+	logWrite(" failed." + vbCrLf)
+	return False
+
+def appliedBusinessRules(varDataFields):
+	INTRULE_VERB_LENGTH = 4
+	INTRULE_DATA_AFTER_VERB = 5
+	strValue = ''
+	blnResult = True
+	
+	for aField in gDictFields:
+		for aRule in gDictFields[aField].businessRules:
+			method = aRule.DWValue.upper()[:INTRULE_VERB_LENGTH]
+			if(method == "VRFY"):
+				strValue = varDataFields[gDictFields[aField].ordinalPositionInExtractFile]
+				if not dispatchVerify(aRule.DWValue[INTRULE_DATA_AFTER_VERB:],strValue):
+					blnResult = False
+					logWrite("Could not apply " + aRule.DWValue + " on " + strValue + vbCrLf)
+				else:
+					varDataFields[gDictFields[aField].ordinalPositionInExtractFile] = strValue
+			elif(method == "TRUL"):
+				strValue = varDataFields[gDictFields[aField].ordinalPositionInExtractFile]
+				strValue = dispatchTruncateLeft(aRule.DWValue[INTRULE_DATA_AFTER_VERB:],strValue)
+				varDataFields[gDictFields[aField].ordinalPositionInExtractFile] = strValue
+			elif(method == "MASK"):
+				strValue = varDataFields[gDictFields[aField].ordinalPositionInExtractFile]
+				strValue = dispatchMask(aRule.DWValue[INTRULE_DATA_AFTER_VERB:],strValue)
+				if strValue:
+					varDataFields[gDictFields[aField].ordinalPositionInExtractFile] = strValue
+				else:
+					blnResult = False
+			else:
+				strValue = varDataFields[gDictFields[aField].ordinalPositionInExtractFile]
+				strValue = dispatchMap(aRule.legacyValue,aRule.DWValue,strValue)
+				varDataFields[gDictFields[aField].ordinalPositionInExtractFile] = strValue
+
+	return blnResult
+	
 strImportTUID = ''
 intFileCounter = 0
+recordCounter = []
 DTProcessingDateTime = localtime()
 
 createLogFile()
@@ -366,21 +639,28 @@ else:
 		DTProcessingDateTime = localtime()
 		for subdir, dirs, files in os.walk(gStrDirPath):
 			for strFilename in files:
-				logWrite("-"*80 + vbCrLf)
+				logWrite(vbCrLf + vbCrLf + "-"*80 + vbCrLf)
 				f=open(subdir+"/"+strFilename, 'r')
 				logWrite("Processing file: " + strFilename + vbCrLf)
+				gStrCompanyCode = strFilename[4:7]
 				if not translateHeader(strFilename):
 					logWrite("*** ETL ERROR ***")
 					logWrite("*** Skipping this input file: " + strFilename)
 				else:
 					strImportTUID = generateImportTUID(strFilename, intFileCounter, DTProcessingDateTime)
+					loadBusinessRules()
 					lines=f.readlines()
+					logWrite(vbCrLf + vbCrLf + "Processing file records in " + strFilename + "..." + vbCrLf)
 					for line in lines[1:]:
-						processData(line.split('\t'), strImportTUID)
-						pass
+						varDataFields = line.split('\t')
+						if appliedBusinessRules(varDataFields):
+							processData(varDataFields, strImportTUID)
 				f.close()
+				logWrite(vbCrLf + "*** Processed " + str(len(lines)) + " records in " + strFilename + " ***" + vbCrLf)
+				recordCounter.append(len(lines))
 				intFileCounter += 1
 		
 		printOutInsertNames()
 	logWrite(vbCrLf + '-'*80 + vbCrLf)
 	logWrite("ETL Completed on " + strftime("%c", localtime()) + vbCrLf)
+	logWrite(vbCrLf + "Processed " + str(sum(recordCounter)) + " records total.")

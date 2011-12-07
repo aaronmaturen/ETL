@@ -1,0 +1,47 @@
+﻿Subsidiary_Number	DW_Fieldname	Legacy_Value	DW_Value
+001	Subsidiary_Number	001	001
+002	Subsidiary_Number	2	002
+003	Subsidiary_Number	003	003
+001	Subsidiary_Number	NULL	VRFY Subsidiary_Table.Subsidiary_Number
+002	Subsidiary_Number	NULL	VRFY Subsidiary_Table.Subsidiary_Number
+003	Subsidiary_Number	NULL	VRFY Subsidiary_Table.Subsidiary_Number
+001	Job_Class_Code	NULL	VRFY Job_Class_Code_Table.Job_Class_Code
+002	Job_Class_Code	NULL	VRFY Job_Class_Code_Table.Job_Class_Code
+003	Job_Class_Code	NULL	VRFY Job_Class_Code_Table.Job_Class_Code
+001	Soc_Sec_Num	NULL	MASK 000-00-0000
+002	Soc_Sec_Num	NULL	MASK 000-00-0000
+003	Soc_Sec_Num	NULL	MASK 000-00-0000
+001	Home_Phone_Number	NULL	MASK (000) 000-0000
+002	Home_Phone_Number	NULL	MASK (000) 000-0000
+003	Home_Phone_Number	NULL	MASK (000) 000-0000
+001	ORIGINAL_HIRE_DATE	NULL	MASK mm/dd/yyyy
+002	ORIGINAL_HIRE_DATE	NULL	MASK mm/dd/yyyy
+003	ORIGINAL_HIRE_DATE	NULL	MASK mm/dd/yyyy
+001	Sex	M	M
+001	Sex	F	F
+002	Sex	1	M
+002	Sex	2	F
+003	Sex	male	M
+003	Sex	female	F
+001	Date_Of_Birth	NULL	MASK mm/dd/yyyy
+002	Date_Of_Birth	NULL	MASK mm/dd/yyyy
+003	Date_Of_Birth	NULL	MASK mm/dd/yyyy
+001	FT_PT_Code	NULL	TRUL 1
+002	FT_PT_Code	NULL	TRUL 1
+003	FT_PT_Code	NULL	TRUL 1
+001	Status_Code	NULL	TRUL 1
+002	Status_Code	NULL	TRUL 1
+003	Status_Code	NULL	TRUL 1
+001	Termination_Date	NULL	MASK mm/dd/yyyy
+002	Termination_Date	NULL	MASK mm/dd/yyyy
+003	Termination_Date	NULL	MASK mm/dd/yyyy
+001	Final_Termination_Date	NULL	MASK mm/dd/yyyy
+002	Final_Termination_Date	NULL	MASK mm/dd/yyyy
+003	Final_Termination_Date	NULL	MASK mm/dd/yyyy
+002	Termination_Code	R	R
+002	Termination_Code	F	F
+003	Termination_Code	1	F
+003	Termination_Code	2	R
+003	Termination_Code	3	F
+003	Termination_Code	4	F
+003	Termination_Code	5	R
