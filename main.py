@@ -220,7 +220,7 @@ def generateImportTUID(strFileName, intFileCounter, DTProcessingDateTime):
 		logWrite("***ERROR on aConn.open()***"+vbCrLf+"in generateImportTUID" + vbCrLf)
 		logWrite(str(e) + vbCrLf)
 	
-	strSQLCmd = "INSERT INTO [IMPORT_TABLE](Import_TUID, Filename, Import_Datetime, Subsidiary_Number) VALUES ('"+strImportTUID+"','"+strFileName+"','"+strftime("%m/%d/%Y", localtime())+"','"+gStrFilenameCompanyCode+"')"
+	strSQLCmd = "INSERT INTO `IMPORT_TABLE`(Import_TUID, Filename, Import_Datetime, Subsidiary_Number) VALUES ('"+strImportTUID+"','"+strFileName+"','"+strftime("%m/%d/%Y", localtime())+"','"+gStrFilenameCompanyCode+"')"
 	
 	try:
 		aConn.execute(strSQLCmd)
@@ -282,7 +282,7 @@ def processData(varDataFields, strImportTUID):
 				strWhereClause += varDataFields[aField.ordinalPositionInExtractFile] + "' AND "
 			strWhereClause = strWhereClause[:-4]
 	
-		strSQLCmd = "SELECT count(1) FROM ["+strTableName+"] " + strWhereClause
+		strSQLCmd = "SELECT count(1) FROM `"+strTableName+"` " + strWhereClause
 
 		try:
 			aDataReader = aConn.execute(strSQLCmd)
@@ -328,7 +328,7 @@ def performInsert(aTable, varDataFields, strWhereClause, strImportTUID):
 	
 	strFieldList += "Import_TUID"
 	
-	strSQLCmd = "INSERT INTO ["+aTable.TableName+"] (" + strFieldList + ") VALUES (" + strDataList + strImportTUID + "')"
+	strSQLCmd = "INSERT INTO `"+aTable.TableName+"` (" + strFieldList + ") VALUES (" + strDataList + strImportTUID + "')"
 	
 	try:
 		aConn.connect()
@@ -366,7 +366,7 @@ def performUpdate(aTable, varDataFields,strWhereClause,strImportTUID):
 	if aTable.isShadowed:
 		shadowRecord(aTable.TableName, strWhereClause)
 	
-	strSQLCmd = "UPDATE [" + aTable.TableName + "] SET "
+	strSQLCmd = "UPDATE `" + aTable.TableName + "` SET "
 	for aFieldName in aTable.fields.keys():
 		strDataList += aFieldName
 		if varDataFields[aTable.fields[aFieldName].ordinalPositionInExtractFile] is "":
@@ -397,7 +397,7 @@ def shadowRecord(strTableName,strWhereClause):
 		logWrite("***ERROR on aConn.open()***"+vbCrLf+"in performInsert" + vbCrLf)
 		logWrite(str(e) + vbCrLf)
 		
-	strSQLCmd = "INSERT INTO [" + strShadowsTableName + "] SELECT * FROM [" + strTableName + "] " + strWhereClause
+	strSQLCmd = "INSERT INTO `" + strShadowsTableName + "` SELECT * FROM `" + strTableName + "` " + strWhereClause
 	
 	try:
 		aConn.execute(strSQLCmd)
