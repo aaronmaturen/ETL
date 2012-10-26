@@ -1,10 +1,6 @@
 #!/usr/bin/python
-#rm -rf /tmp/cis486logs && mkdir /tmp/cis486logs && python main.py && echo ">>> Log Files <<<" && cat /tmp/cis486logs/*.txt
-#version tweet
 #aaron maturen
 #empty fields are "" not None
-#didn't indent part of the for loop
-#had to strip out \r along with \n from last field
 
 import os
 import sys
@@ -47,7 +43,6 @@ port = '3306'
 username = 'root'
 password = 'windows'
 database = 'ETL'
-#gStrConnection = 'mssql+pyodbc:///?odbc_connect={}'.format(urllib.quote_plus('Driver=/usr/local/lib/libtdsodbc.so;Server={};Port={};TDS_Version=8.0;uid={};pwd={};Database={};'.format(ip,port,username,password,database)))
 gStrConnection = 'mysql://{}:{}@{}:{}/{}?charset=utf8'.format(username,password,ip,port,database)
 
 #some fixes for keeping some VB stuffs
