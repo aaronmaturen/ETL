@@ -1,0 +1,13 @@
+ETL Started on Fri Oct 26 11:53:31 2012
+
+
+--------------------------------------------------------------------------------
+Processing file: comp001.txt
+Translating header of comp001.txt
+Conversion of legacy fields in comp001.txt to DW field Names started... 
+
+
+
+oops... could not execute query in translateHeader
+statement: SELECT * FROM `EXTRACT_FILE_TRANSLATION_TABLE` WHERE `Subsidiary_Number` = '001' AND `LEGACY_FIELDNAME` = 'SUBSIDIARY_NUMBER'
+error: (OperationalError) (1054, "Unknown column 'Subsidiary_Number' in 'where clause'") "SELECT * FROM `EXTRACT_FILE_TRANSLATION_TABLE` WHERE `Subsidiary_Number` = '001' AND `LEGACY_FIELDNAME` = 'SUBSIDIARY_NUMBER'" ()

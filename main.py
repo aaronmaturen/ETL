@@ -34,20 +34,21 @@ class clsBusinessRule():
 		self.legacyValue = ''
 		self.DWValue = ''
 
-gStrDirPath = '/tmp/cis486'
-gStrLogPath = '/tmp/cis486logs'
+gStrDirPath = 'data'
+gStrLogPath = 'logs'
 gStrLogFile = ''
 
 gDictTables = {}
 gDictFields = {}
 
 #database stuffs
-ip = '172.16.218.142'
-port = '1433'
-username = 'thedw'
-password = 'thedw'
-database = 'TheDW'
-gStrConnection = 'mssql+pyodbc:///?odbc_connect={}'.format(urllib.quote_plus('Driver=/usr/local/lib/libtdsodbc.so;Server={};Port={};TDS_Version=8.0;uid={};pwd={};Database={};'.format(ip,port,username,password,database)))
+ip = '127.0.0.1'
+port = '3306'
+username = 'root'
+password = 'windows'
+database = 'ETL'
+#gStrConnection = 'mssql+pyodbc:///?odbc_connect={}'.format(urllib.quote_plus('Driver=/usr/local/lib/libtdsodbc.so;Server={};Port={};TDS_Version=8.0;uid={};pwd={};Database={};'.format(ip,port,username,password,database)))
+gStrConnection = 'mysql://{}:{}@{}:{}/{}?charset=utf8'.format(username,password,ip,port,database)
 
 #some fixes for keeping some VB stuffs
 vbCrLf = "\r\n"
@@ -89,7 +90,7 @@ def updateTablesAndFieldsArrays( strDWTableName, strDWFieldName):
 		except Exception, e:
 			logWrite(e)
 			aConn.close()
-		strSQLCmd = "SELECT * FROM [TABLES_TABLE] WHERE [TABLE_NAME] = '" + strDWTableName + "'"
+		strSQLCmd = "SELECT * FROM `TABLES_TABLE` WHERE `TABLE_NAME` = '" + strDWTableName + "'"
 		aDataReader = aConn.execute(strSQLCmd)
 		
 		#SQLALCHEMY Didn't want to play nice
@@ -158,7 +159,7 @@ def translateHeader(strFilename):
 	
 	lngPosition = 0
 	for strLegacyName in varFileFields:
-		strSQLCmd = "SELECT * FROM [EXTRACT_FILE_TRANSLATION_TABLE] WHERE [Subsidiary_Number] = '" + gStrFilenameCompanyCode + "' AND [LEGACY_FIELDNAME] = '" + strLegacyName + "'"
+		strSQLCmd = "SELECT * FROM `EXTRACT_FILE_TRANSLATION_TABLE` WHERE `Subsidiary_Number` = '" + gStrFilenameCompanyCode + "' AND `LEGACY_FIELDNAME` = '" + strLegacyName + "'"
 		try:
 			aDataReader = aConn.execute(strSQLCmd)
 		except Exception, e:
@@ -424,7 +425,7 @@ def loadBusinessRules():
 	
 	logWrite("Beginning Business Rule Load for subsidiary " + gStrCompanyCode + "..." + vbCrLf)
 	for aField in gDictFields:
-		strSQLCmd = "SELECT * FROM [BUSINESS_RULES_TABLE] WHERE [SUBSIDIARY_NUMBER] = '" + gStrCompanyCode + "' AND [DW_FIELDNAME] = '" + gDictFields[aField].DWName + "'"
+		strSQLCmd = "SELECT * FROM `BUSINESS_RULES_TABLE` WHERE `SUBSIDIARY_NUMBER` = '" + gStrCompanyCode + "' AND `DW_FIELDNAME` = '" + gDictFields[aField].DWName + "'"
 		
 		try:
 			#logWrite(strSQLCmd + vbCrLf)
@@ -478,7 +479,7 @@ def dispatchVerify(strTableAndField, strValueToVerify):
 			logWrite(str(e) + vbCrLf)
 			aConn.close()
 			
-		strSQLCmd = "SELECT * FROM [" + strTableName + "] WHERE [" + strFieldName + "] = '" + strValueToVerify.rstrip() + "'"
+		strSQLCmd = "SELECT * FROM `" + strTableName + "` WHERE `" + strFieldName + "` = '" + strValueToVerify.rstrip() + "'"
 		try:
 			aDataReader = aConn.execute(strSQLCmd)
 		except Exception, e:

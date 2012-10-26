@@ -1,0 +1,7 @@
+ETL Started on Fri Oct 26 11:46:18 2012
+No Files to Process
+sad day
+--------------------------------------------------------------------------------
+ETL Completed on Fri Oct 26 11:46:18 2012
+
+Processed 0 records total.
